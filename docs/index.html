@@ -436,7 +436,7 @@ function renderFTDLeaderboard(leaders) {
       <td><span class="ftd-win-badge">${l.wins} win${l.wins !== 1 ? 's' : ''}</span></td>
       <td style="font-size:13px;color:var(--muted)">${l.win_rate}%</td>
       <td class="ftd-sm-hide" style="font-size:13px;color:var(--muted)">${l.streak > 1 ? l.streak + ' straight' : '—'}</td>
-      <td class="ftd-sm-hide" style="font-size:12px;color:var(--muted);white-space:normal;max-width:220px">${escHtml(l.top_car) || '—'}</td>
+      <td class="ftd-sm-hide" style="font-size:12px;color:var(--muted);white-space:normal;max-width:240px">${l.cars.map(c => escHtml(c.car) + (l.cars.length > 1 ? ' <span style="color:var(--border);font-weight:700">×' + c.n + '</span>' : '')).join('<span style="color:var(--border)"> · </span>') || '—'}</td>
     </tr>`).join('');
   document.getElementById('ftd-leaderboard').innerHTML = `
     <div class="ftd-wrap">

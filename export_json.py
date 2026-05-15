@@ -45,6 +45,15 @@ ALIASES: dict[str, str] = {
     "calvin c-money owens":         "calvin owens",
     "chris 2022 gs ps champ yoder": "chris yoder",
     "jim stout":                    "chris yoder",
+    # Bill Staley Jr variants
+    "bill staley jr.":              "bill staley jr",
+    "bill staley, jr.":             "bill staley jr",
+    "bill jr. staley":              "bill staley jr",
+    "bill jr staley":               "bill staley jr",
+    # Bill Staley Sr variants
+    "bill staley sr.":              "bill staley sr",
+    "bill staley, sr.":             "bill staley sr",
+    "bill sr. staley":              "bill staley sr",
 }
 
 # Force the display name for a group (keyed by normalized canonical).
@@ -53,6 +62,8 @@ DISPLAY_OVERRIDES: dict[str, str] = {
     "david schneider": "David Schneider",
     "calvin owens":    "Calvin Owens",
     "chris yoder":     "Chris Yoder",
+    "bill staley jr":  "Bill Staley Jr",
+    "bill staley sr":  "Bill Staley Sr",
 }
 
 
@@ -189,7 +200,8 @@ def main():
 
     ftd_leaders: list = []
     for name, wins in win_counts.items():
-        top_car  = max(win_cars[name], key=win_cars[name].get)
+        # All cars used for FTD wins, sorted by win count descending
+        cars = sorted(win_cars[name].items(), key=lambda x: -x[1])
         total    = total_events_map.get(name, wins)
         win_rate = round(wins / total * 100, 1)
         ftd_leaders.append({
@@ -197,7 +209,7 @@ def main():
             "wins":     wins,
             "events":   total,
             "win_rate": win_rate,
-            "top_car":  top_car,
+            "cars":     [{"car": car, "n": n} for car, n in cars],
             "streak":   max_streaks[name],
         })
     ftd_leaders.sort(key=lambda l: (-l["wins"], l["name"].lower()))
