@@ -45,7 +45,8 @@ ALIASES: dict[str, str] = {
     "calvin c-money owens":         "calvin owens",
     "chris 2022 gs ps champ yoder": "chris yoder",
     "jim stout":                    "chris yoder",
-    # Bill Staley Jr variants
+    # Bill Staley Jr variants (plain "Bill Staley" confirmed to be Jr)
+    "bill staley":                  "bill staley jr",
     "bill staley jr.":              "bill staley jr",
     "bill staley, jr.":             "bill staley jr",
     "bill jr. staley":              "bill staley jr",
