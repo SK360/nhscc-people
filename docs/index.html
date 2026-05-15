@@ -20,56 +20,65 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
 
-  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  header .logo { font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
-  header .subtitle { color: var(--muted); font-size: 13px; }
-  header .stats-row { margin-left: auto; display: flex; gap: 24px; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 20px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  header .logo { font-size: 20px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+  header .subtitle { color: var(--muted); font-size: 12px; }
+  header .stats-row { margin-left: auto; display: flex; gap: 20px; }
   header .stat { text-align: right; }
-  header .stat .val { font-size: 20px; font-weight: 700; color: var(--text); }
-  header .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  header .stat .val { font-size: 18px; font-weight: 700; color: var(--text); }
+  header .stat .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
-  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  main { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
 
-  .search-wrap { position: relative; margin-bottom: 28px; }
+  .search-wrap { position: relative; margin-bottom: 20px; }
   .search-wrap input {
-    width: 100%; padding: 16px 20px 16px 52px; font-size: 18px;
+    width: 100%; padding: 14px 16px 14px 46px; font-size: 16px;
     background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
     color: var(--text); outline: none; transition: border-color 0.15s;
   }
   .search-wrap input:focus { border-color: var(--accent); }
   .search-wrap input::placeholder { color: var(--muted); }
-  .search-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 20px; pointer-events: none; }
+  .search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 18px; pointer-events: none; }
   .search-hint { margin-top: 8px; font-size: 13px; color: var(--muted); padding-left: 4px; }
 
-  .results { display: flex; flex-direction: column; gap: 16px; }
+  .results { display: flex; flex-direction: column; gap: 12px; }
 
   .driver-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
   .driver-card.expanded .card-header { border-bottom: 1px solid var(--border); }
-  .card-header { padding: 18px 22px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: background 0.1s; flex-wrap: wrap; }
+  .card-header { padding: 14px 16px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.1s; flex-wrap: wrap; }
   .card-header:hover { background: var(--surface2); }
-  .driver-name { font-size: 18px; font-weight: 700; flex: 1; min-width: 160px; }
+  .driver-name { font-size: 16px; font-weight: 700; flex: 1; min-width: 120px; }
   .driver-variants { font-size: 11px; color: var(--muted); margin-top: 3px; font-weight: 400; }
-  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; white-space: nowrap; }
   .badge-class { background: rgba(232,77,61,0.15); color: var(--accent2); }
   .badge-count { background: rgba(62,207,142,0.12); color: var(--green); }
-  .last-seen { font-size: 13px; color: var(--muted); text-align: right; min-width: 150px; }
-  .last-seen .date { font-size: 15px; font-weight: 600; color: var(--text); }
-  .chevron { color: var(--muted); font-size: 14px; transition: transform 0.2s; margin-left: 8px; flex-shrink: 0; }
+  .last-seen { font-size: 12px; color: var(--muted); text-align: right; min-width: 120px; }
+  .last-seen .date { font-size: 14px; font-weight: 600; color: var(--text); }
+  .chevron { color: var(--muted); font-size: 13px; transition: transform 0.2s; margin-left: 4px; flex-shrink: 0; }
   .expanded .chevron { transform: rotate(180deg); }
 
   .card-body { display: none; }
   .expanded .card-body { display: block; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  thead th { background: var(--surface2); padding: 10px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 600; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 480px; }
+  thead th { background: var(--surface2); padding: 10px 14px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 600; white-space: nowrap; }
   tbody tr { border-top: 1px solid var(--border); transition: background 0.1s; }
   tbody tr:hover { background: var(--surface2); }
-  tbody td { padding: 10px 16px; }
-  .td-date { font-weight: 600; white-space: nowrap; }
-  .td-car { color: var(--muted); font-size: 13px; }
+  tbody td { padding: 9px 14px; white-space: nowrap; }
+  .td-date { font-weight: 600; }
+  .td-car { color: var(--muted); font-size: 13px; white-space: normal; min-width: 100px; }
   .td-time { font-variant-numeric: tabular-nums; }
   .td-pax { font-variant-numeric: tabular-nums; color: var(--muted); }
   .row-latest td { color: var(--yellow); }
   .row-latest .td-car { color: var(--yellow); opacity: 0.7; }
+
+  @media (max-width: 480px) {
+    header .subtitle { display: none; }
+    header .stats-row { gap: 14px; }
+    header .stat .val { font-size: 15px; }
+    .last-seen { min-width: 0; }
+    .badge-count { display: none; }
+  }
 
   .section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 14px; }
   .year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
@@ -232,10 +241,12 @@ function driverCard(d, expanded) {
       <span class="chevron">▼</span>
     </div>
     <div class="card-body">
-      <table>
-        <thead><tr><th>Date</th><th>Class</th><th>Car #</th><th>Car</th><th>Best</th><th>PAX</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Date</th><th>Class</th><th>Car #</th><th>Car</th><th>Best</th><th>PAX</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
     </div>
   </div>`;
 }
