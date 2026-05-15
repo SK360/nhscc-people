@@ -54,6 +54,9 @@ ALIASES: dict[str, str] = {
     "bill staley sr.":              "bill staley sr",
     "bill staley, sr.":             "bill staley sr",
     "bill sr. staley":              "bill staley sr",
+    # Hoffmann spelling corrections (DB has wrong last name; first names are correct)
+    "tod hoffman":                  "tod hoffmann",
+    "tyler hoffman":                "tyler hoffmann",   # normalize_name collapses double-space
 }
 
 # Force the display name for a group (keyed by normalized canonical).
@@ -64,6 +67,8 @@ DISPLAY_OVERRIDES: dict[str, str] = {
     "chris yoder":     "Chris Yoder",
     "bill staley jr":  "Bill Staley Jr",
     "bill staley sr":  "Bill Staley Sr",
+    "tod hoffmann":    "Tod Hoffmann",
+    "tyler hoffmann":  "Tyler Hoffmann",
 }
 
 
