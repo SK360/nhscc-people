@@ -87,6 +87,19 @@
   .year-card .bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
   .year-card .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; }
 
+  .leaderboard { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+  .lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-top: 1px solid var(--border); }
+  .lb-row:first-child { border-top: none; }
+  .lb-row:hover { background: var(--surface2); }
+  .lb-rank { font-size: 13px; font-weight: 700; color: var(--muted); min-width: 28px; flex-shrink: 0; }
+  .lb-rank-1 { color: #ffd700; }
+  .lb-rank-2 { color: #c0c0c0; }
+  .lb-rank-3 { color: #cd7f32; }
+  .lb-name { flex: 1; font-weight: 600; font-size: 14px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-bar-wrap { width: 80px; height: 4px; background: var(--border); border-radius: 2px; flex-shrink: 0; }
+  .lb-bar { height: 100%; background: linear-gradient(90deg, var(--green), rgba(62,207,142,0.4)); border-radius: 2px; }
+  @media (max-width: 480px) { .lb-bar-wrap { display: none; } }
+
   .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
   .empty .icon { font-size: 40px; margin-bottom: 12px; }
   .empty p { font-size: 15px; }
@@ -117,6 +130,7 @@
     <div class="search-hint" id="search-hint"><span class="spinner"></span>Loading data…</div>
   </div>
   <div id="results"></div>
+  <div id="leaderboard"></div>
   <div id="yearview"></div>
 </main>
 
@@ -134,6 +148,7 @@ fetch('data.json')
     document.getElementById('s-years').textContent   = `${d.stats.first_year}–${d.stats.last_year}`;
     document.getElementById('search-hint').textContent = 'Type at least 2 characters to search';
     document.getElementById('search').disabled = false;
+    renderLeaderboard(d.drivers);
     renderYears(d.years);
   })
   .catch(() => {
@@ -141,6 +156,23 @@ fetch('data.json')
   });
 
 document.getElementById('search').disabled = true;
+
+function renderLeaderboard(drivers) {
+  const top10 = [...drivers].sort((a, b) => b.count - a.count).slice(0, 10);
+  const max = top10[0].count;
+  const podium = ['lb-rank-1', 'lb-rank-2', 'lb-rank-3'];
+  document.getElementById('leaderboard').innerHTML = `
+    <p class="section-title">Most Events</p>
+    <div class="leaderboard">
+      ${top10.map((d, i) => `
+        <div class="lb-row">
+          <span class="lb-rank ${podium[i] || ''}">#${i + 1}</span>
+          <span class="lb-name">${escHtml(d.name)}</span>
+          <div class="lb-bar-wrap"><div class="lb-bar" style="width:${Math.round(d.count / max * 100)}%"></div></div>
+          <span class="badge badge-count">${d.count} event${d.count !== 1 ? 's' : ''}</span>
+        </div>`).join('')}
+    </div>`;
+}
 
 function renderYears(years) {
   const maxEntries = Math.max(...years.map(y => y.entries));
@@ -163,9 +195,11 @@ document.getElementById('search').addEventListener('input', e => {
   if (q.length < 2) {
     document.getElementById('results').innerHTML = '';
     document.getElementById('search-hint').textContent = 'Type at least 2 characters to search';
+    document.getElementById('leaderboard').style.display = '';
     document.getElementById('yearview').style.display = '';
     return;
   }
+  document.getElementById('leaderboard').style.display = 'none';
   document.getElementById('yearview').style.display = 'none';
   debounceTimer = setTimeout(() => doSearch(q), 150);
 });
