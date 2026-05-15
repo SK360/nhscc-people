@@ -5,6 +5,7 @@ import json
 import os
 import re
 import sqlite3
+from collections import defaultdict
 from datetime import date
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "nhscc_results.db")
@@ -126,6 +127,86 @@ def main():
     # Sort by name for consistent output
     drivers.sort(key=lambda d: d["name"].lower())
 
+    # -----------------------------------------------------------------------
+    # FTD (Fastest Time of Day) computation
+    # -----------------------------------------------------------------------
+    # Build reverse lookup: any raw DB name → canonical display name
+    name_to_display: dict[str, str] = {}
+    for key, variants in groups.items():
+        disp = DISPLAY_OVERRIDES.get(key, strip_annotation(canonical_name(variants)))
+        for v in variants:
+            name_to_display[v] = disp
+
+    # Get all valid times (filter out DNF 999s, PAX indexes, and garbage data)
+    ftd_raw = conn.execute(
+        """
+        SELECT source_url, event_date, event_year, name, car, car_class, best_time
+        FROM results
+        WHERE best_time BETWEEN 20 AND 200
+        ORDER BY source_url, best_time, name
+        """
+    ).fetchall()
+
+    # One FTD winner per event (lowest time; alphabetical on ties)
+    ftd_by_url: dict = {}
+    for row in ftd_raw:
+        if row["source_url"] not in ftd_by_url:
+            ftd_by_url[row["source_url"]] = row
+
+    # Sort chronologically
+    ftd_winners = sorted(ftd_by_url.values(), key=lambda r: r["event_date"])
+
+    # Build event list and accumulate stats in one pass
+    ftd_events_list: list = []
+    win_counts: dict  = defaultdict(int)
+    win_cars: dict    = defaultdict(lambda: defaultdict(int))
+    max_streaks: dict = defaultdict(int)
+    prev_winner: str | None = None
+    cur_streak = 0
+
+    for row in ftd_winners:
+        raw_name = row["name"]
+        disp = name_to_display.get(raw_name, strip_annotation(raw_name))
+        ftd_events_list.append({
+            "date":   row["event_date"],
+            "year":   row["event_year"],
+            "driver": disp,
+            "cls":    row["car_class"],
+            "car":    row["car"] or "",
+            "time":   round(row["best_time"], 3),
+        })
+        win_counts[disp] += 1
+        win_cars[disp][row["car"] or ""] += 1
+        if disp == prev_winner:
+            cur_streak += 1
+        else:
+            cur_streak = 1
+            prev_winner = disp
+        if cur_streak > max_streaks[disp]:
+            max_streaks[disp] = cur_streak
+
+    total_events_map = {d["name"]: d["count"] for d in drivers}
+
+    ftd_leaders: list = []
+    for name, wins in win_counts.items():
+        top_car  = max(win_cars[name], key=win_cars[name].get)
+        total    = total_events_map.get(name, wins)
+        win_rate = round(wins / total * 100, 1)
+        ftd_leaders.append({
+            "name":     name,
+            "wins":     wins,
+            "events":   total,
+            "win_rate": win_rate,
+            "top_car":  top_car,
+            "streak":   max_streaks[name],
+        })
+    ftd_leaders.sort(key=lambda l: (-l["wins"], l["name"].lower()))
+
+    ftd = {
+        "leaders": ftd_leaders,
+        "events":  list(reversed(ftd_events_list)),  # newest first for display
+    }
+
     conn.close()
 
     payload = {
@@ -133,6 +214,7 @@ def main():
         "stats":     stats,
         "years":     years,
         "drivers":   drivers,
+        "ftd":       ftd,
     }
 
     os.makedirs(os.path.dirname(OUT_PATH), exist_ok=True)

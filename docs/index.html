@@ -121,6 +121,17 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   .generated { font-size: 11px; color: var(--muted); text-align: center; padding: 24px; }
+
+  /* FTD panel */
+  .ftd-note { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.6; }
+  .ftd-note strong { color: var(--text); }
+  .ftd-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 8px; }
+  .ftd-win-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 12px; font-weight: 700; background: rgba(232,77,61,0.15); color: var(--accent2); white-space: nowrap; }
+  .ftd-disclaimer { font-size: 11px; color: var(--muted); font-style: italic; padding: 4px 2px 24px; }
+  .row-gold   td { color: #ffd700; }
+  .row-silver td { color: #c0c0c0; }
+  .row-bronze td { color: #cd7f32; }
+  @media (max-width: 600px) { .ftd-sm-hide { display: none !important; } }
 </style>
 </head>
 <body>
@@ -140,6 +151,7 @@
 <nav class="tab-bar">
   <button class="tab-btn active" data-tab="search">🔍 Search</button>
   <button class="tab-btn" data-tab="facts">★ Interesting Facts</button>
+  <button class="tab-btn" data-tab="ftd">🏁 FTD</button>
 </nav>
 
 <main>
@@ -234,6 +246,16 @@
     </div>
     <p class="generated" id="facts-generated"></p>
   </div>
+
+  <!-- FTD panel -->
+  <div id="panel-ftd" style="display:none">
+    <p class="ftd-note">🏁 <strong>FTD</strong> (Fastest Time of Day) = the single lowest raw time recorded at each event. Course designs change every event, so times are <em>not comparable across events</em> — only win counts matter here.</p>
+    <p class="section-title">FTD Leaderboard</p>
+    <div id="ftd-leaderboard"></div>
+    <p class="section-title" style="margin-top:28px">FTD History — Every Event</p>
+    <div id="ftd-history"></div>
+    <p class="ftd-disclaimer">* Time shown for reference only — course layouts vary by event and raw times cannot be compared across events.</p>
+  </div>
 </main>
 
 <script>
@@ -253,6 +275,7 @@ fetch('data.json')
     document.getElementById('facts-generated').textContent = `Data exported ${d.generated}`;
     renderLeaderboard(d.drivers);
     renderYears(d.years);
+    if (d.ftd) renderFTD(d.ftd);
   })
   .catch(() => {
     document.getElementById('search-hint').textContent = 'Failed to load data.';
@@ -268,6 +291,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const tab = btn.dataset.tab;
     document.getElementById('panel-search').style.display = tab === 'search' ? '' : 'none';
     document.getElementById('panel-facts').style.display  = tab === 'facts'  ? '' : 'none';
+    document.getElementById('panel-ftd').style.display    = tab === 'ftd'    ? '' : 'none';
   });
 });
 
@@ -396,6 +420,59 @@ function driverCard(d, expanded) {
       </div>
     </div>
   </div>`;
+}
+
+function renderFTD(ftd) {
+  renderFTDLeaderboard(ftd.leaders);
+  renderFTDHistory(ftd.events);
+}
+
+function renderFTDLeaderboard(leaders) {
+  const podium = ['row-gold', 'row-silver', 'row-bronze'];
+  const rows = leaders.map((l, i) => `
+    <tr class="${podium[i] || ''}">
+      <td style="font-weight:700;color:var(--muted);min-width:32px">${i < 3 ? ['🥇','🥈','🥉'][i] : '#' + (i + 1)}</td>
+      <td style="font-weight:600">${escHtml(l.name)}</td>
+      <td><span class="ftd-win-badge">${l.wins} win${l.wins !== 1 ? 's' : ''}</span></td>
+      <td style="font-size:13px;color:var(--muted)">${l.win_rate}%</td>
+      <td class="ftd-sm-hide" style="font-size:13px;color:var(--muted)">${l.streak > 1 ? l.streak + ' straight' : '—'}</td>
+      <td class="ftd-sm-hide" style="font-size:12px;color:var(--muted);white-space:normal;max-width:220px">${escHtml(l.top_car) || '—'}</td>
+    </tr>`).join('');
+  document.getElementById('ftd-leaderboard').innerHTML = `
+    <div class="ftd-wrap">
+      <div class="table-scroll">
+        <table style="min-width:480px">
+          <thead><tr>
+            <th>#</th><th>Driver</th><th>FTD Wins</th><th>Win Rate</th>
+            <th class="ftd-sm-hide">Best Streak</th><th class="ftd-sm-hide">Top FTD Car</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function renderFTDHistory(events) {
+  const rows = events.map(ev => `
+    <tr>
+      <td class="td-date">${ev.date}</td>
+      <td style="font-weight:600">${escHtml(ev.driver)}</td>
+      <td><span class="badge badge-class">${escHtml(ev.cls)}</span></td>
+      <td class="td-car ftd-sm-hide">${escHtml(ev.car)}</td>
+      <td class="td-time" style="color:var(--muted);font-size:13px">${ev.time.toFixed(3)}*</td>
+    </tr>`).join('');
+  document.getElementById('ftd-history').innerHTML = `
+    <div class="ftd-wrap">
+      <div class="table-scroll">
+        <table style="min-width:400px">
+          <thead><tr>
+            <th>Date</th><th>Driver</th><th>Class</th>
+            <th class="ftd-sm-hide">Car</th><th>Time*</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function escHtml(s) {
