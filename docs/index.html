@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHSCC People</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e334d;
+    --accent: #e84d3d;
+    --accent2: #ff7c50;
+    --text: #e8eaf0;
+    --muted: #7a80a0;
+    --green: #3ecf8e;
+    --yellow: #f5a623;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; min-height: 100vh; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 32px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header .logo { font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; }
+  header .subtitle { color: var(--muted); font-size: 13px; }
+  header .stats-row { margin-left: auto; display: flex; gap: 24px; }
+  header .stat { text-align: right; }
+  header .stat .val { font-size: 20px; font-weight: 700; color: var(--text); }
+  header .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+
+  .search-wrap { position: relative; margin-bottom: 28px; }
+  .search-wrap input {
+    width: 100%; padding: 16px 20px 16px 52px; font-size: 18px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text); outline: none; transition: border-color 0.15s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-wrap input::placeholder { color: var(--muted); }
+  .search-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 20px; pointer-events: none; }
+  .search-hint { margin-top: 8px; font-size: 13px; color: var(--muted); padding-left: 4px; }
+
+  .results { display: flex; flex-direction: column; gap: 16px; }
+
+  .driver-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .driver-card.expanded .card-header { border-bottom: 1px solid var(--border); }
+  .card-header { padding: 18px 22px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: background 0.1s; flex-wrap: wrap; }
+  .card-header:hover { background: var(--surface2); }
+  .driver-name { font-size: 18px; font-weight: 700; flex: 1; min-width: 160px; }
+  .driver-variants { font-size: 11px; color: var(--muted); margin-top: 3px; font-weight: 400; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge-class { background: rgba(232,77,61,0.15); color: var(--accent2); }
+  .badge-count { background: rgba(62,207,142,0.12); color: var(--green); }
+  .last-seen { font-size: 13px; color: var(--muted); text-align: right; min-width: 150px; }
+  .last-seen .date { font-size: 15px; font-weight: 600; color: var(--text); }
+  .chevron { color: var(--muted); font-size: 14px; transition: transform 0.2s; margin-left: 8px; flex-shrink: 0; }
+  .expanded .chevron { transform: rotate(180deg); }
+
+  .card-body { display: none; }
+  .expanded .card-body { display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  thead th { background: var(--surface2); padding: 10px 16px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); font-weight: 600; }
+  tbody tr { border-top: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 10px 16px; }
+  .td-date { font-weight: 600; white-space: nowrap; }
+  .td-car { color: var(--muted); font-size: 13px; }
+  .td-time { font-variant-numeric: tabular-nums; }
+  .td-pax { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .row-latest td { color: var(--yellow); }
+  .row-latest .td-car { color: var(--yellow); opacity: 0.7; }
+
+  .section-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 14px; }
+  .year-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+  .year-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .year-card .yr { font-size: 18px; font-weight: 700; }
+  .year-card .meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .year-card .bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow: hidden; }
+  .year-card .bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; }
+
+  .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+  .empty .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 15px; }
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 8px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .generated { font-size: 11px; color: var(--muted); text-align: center; padding: 24px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="logo">⚑ NHSCC People</div>
+    <div class="subtitle">North Hills Sports Car Club &mdash; Results Database</div>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="val" id="s-drivers">—</div><div class="lbl">Drivers</div></div>
+    <div class="stat"><div class="val" id="s-events">—</div><div class="lbl">Events</div></div>
+    <div class="stat"><div class="val" id="s-years">—</div><div class="lbl">Years</div></div>
+  </div>
+</header>
+
+<main>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="search" placeholder="Search by name…" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="search-hint" id="search-hint"><span class="spinner"></span>Loading data…</div>
+  </div>
+  <div id="results"></div>
+  <div id="yearview"></div>
+</main>
+
+<script>
+let DATA = null;
+let debounceTimer = null;
+let expandedCards = new Set();
+
+fetch('data.json')
+  .then(r => r.json())
+  .then(d => {
+    DATA = d;
+    document.getElementById('s-drivers').textContent = d.stats.drivers.toLocaleString();
+    document.getElementById('s-events').textContent  = d.stats.events.toLocaleString();
+    document.getElementById('s-years').textContent   = `${d.stats.first_year}–${d.stats.last_year}`;
+    document.getElementById('search-hint').textContent = 'Type at least 2 characters to search';
+    document.getElementById('search').disabled = false;
+    renderYears(d.years);
+  })
+  .catch(() => {
+    document.getElementById('search-hint').textContent = 'Failed to load data.';
+  });
+
+document.getElementById('search').disabled = true;
+
+function renderYears(years) {
+  const maxEntries = Math.max(...years.map(y => y.entries));
+  document.getElementById('yearview').innerHTML = `
+    <p class="section-title">Events by Year</p>
+    <div class="year-grid">
+      ${years.map(y => `
+        <div class="year-card">
+          <div class="yr">${y.event_year}</div>
+          <div class="meta">${y.events} event${y.events !== 1 ? 's' : ''} &middot; ${y.entries} drivers</div>
+          <div class="bar"><div class="bar-fill" style="width:${Math.round(y.entries/maxEntries*100)}%"></div></div>
+        </div>`).join('')}
+    </div>
+    <p class="generated">Data exported ${DATA.generated}</p>`;
+}
+
+document.getElementById('search').addEventListener('input', e => {
+  const q = e.target.value.trim();
+  clearTimeout(debounceTimer);
+  if (q.length < 2) {
+    document.getElementById('results').innerHTML = '';
+    document.getElementById('search-hint').textContent = 'Type at least 2 characters to search';
+    document.getElementById('yearview').style.display = '';
+    return;
+  }
+  document.getElementById('yearview').style.display = 'none';
+  debounceTimer = setTimeout(() => doSearch(q), 150);
+});
+
+function doSearch(q) {
+  const ql = q.toLowerCase();
+  const matches = DATA.drivers.filter(d =>
+    d.name.toLowerCase().includes(ql) ||
+    d.variants.some(v => v.toLowerCase().includes(ql))
+  );
+  const hint = document.getElementById('search-hint');
+  if (matches.length === 0) {
+    hint.textContent = 'No results found';
+    document.getElementById('results').innerHTML =
+      `<div class="empty"><div class="icon">🏁</div><p>No drivers found matching "${escHtml(q)}"</p></div>`;
+  } else {
+    hint.textContent = `${matches.length} driver${matches.length !== 1 ? 's' : ''} found`;
+    renderResults(matches);
+  }
+}
+
+function renderResults(drivers) {
+  const html = drivers.map(d => {
+    const isExpanded = expandedCards.has(d.name) || drivers.length === 1;
+    if (drivers.length === 1) expandedCards.add(d.name);
+    return driverCard(d, isExpanded);
+  }).join('');
+  document.getElementById('results').innerHTML = `<div class="results">${html}</div>`;
+  document.querySelectorAll('.card-header').forEach(h => {
+    h.addEventListener('click', () => {
+      const card = h.closest('.driver-card');
+      const name = card.dataset.name;
+      if (card.classList.contains('expanded')) {
+        card.classList.remove('expanded');
+        expandedCards.delete(name);
+      } else {
+        card.classList.add('expanded');
+        expandedCards.add(name);
+      }
+    });
+  });
+}
+
+function driverCard(d, expanded) {
+  const variantNote = d.variants.length
+    ? `<div class="driver-variants">also: ${d.variants.map(escHtml).join(', ')}</div>` : '';
+
+  const rows = d.history.map((a, i) => {
+    const best = a.best != null ? a.best.toFixed(3) : '—';
+    const pax  = a.pax  != null ? a.pax.toFixed(3)  : '—';
+    return `<tr class="${i === 0 ? 'row-latest' : ''}">
+      <td class="td-date">${a.date}</td>
+      <td><span class="badge badge-class">${escHtml(a.cls)}</span></td>
+      <td>#${escHtml(a.num)}</td>
+      <td class="td-car">${escHtml(a.car)}</td>
+      <td class="td-time">${best}</td>
+      <td class="td-pax">${pax}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div class="driver-card ${expanded ? 'expanded' : ''}" data-name="${escHtml(d.name)}">
+    <div class="card-header">
+      <div class="driver-name">${escHtml(d.name)}${variantNote}</div>
+      <span class="badge badge-class">${escHtml(d.last_cls || '—')}</span>
+      <span class="badge badge-count">${d.count} event${d.count !== 1 ? 's' : ''}</span>
+      <div class="last-seen">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Last seen</div>
+        <div class="date">${d.last_seen || '—'}</div>
+        <div style="font-size:12px;color:var(--muted)">${escHtml(d.last_car || '')}</div>
+      </div>
+      <span class="chevron">▼</span>
+    </div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>Date</th><th>Class</th><th>Car #</th><th>Car</th><th>Best</th><th>PAX</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
