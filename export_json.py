@@ -18,6 +18,13 @@ def normalize_name(name: str) -> str:
     return re.sub(r'\s+', ' ', n).strip()
 
 
+def strip_annotation(name: str) -> str:
+    """Remove non-points suffixes from a display name, preserving case."""
+    n = re.sub(r'\s*\(non[-\s]?poi\w*\)?$', '', name, flags=re.IGNORECASE)
+    n = re.sub(r'\s+np\s*$', '', n, flags=re.IGNORECASE)
+    return re.sub(r'\s+', ' ', n).strip()
+
+
 def canonical_name(names: list) -> str:
     title = [n for n in names if n == n.title()]
     pool = title if title else names
@@ -77,8 +84,9 @@ def main():
                 "pax":  round(r["pax_time"],  3) if r["pax_time"]  else None,
             })
 
-        display_name = canonical_name(variants)
-        other_variants = [v for v in variants if v != display_name]
+        display_name = strip_annotation(canonical_name(variants))
+        clean_variants = list(dict.fromkeys(strip_annotation(v) for v in variants))
+        other_variants = [v for v in clean_variants if v != display_name]
 
         drivers.append({
             "name":      display_name,
