@@ -37,16 +37,21 @@ def canonical_name(names: list) -> str:
 # Map any normalized name variant → the normalized canonical group key.
 # All variants that share the same canonical key are merged into one driver.
 ALIASES: dict[str, str] = {
-    "sexy dave schneider":    "david schneider",
-    'dave "gomez" schneider': "david schneider",
-    "dave schneider":         "david schneider",
-    "david scheider":         "david schneider",   # typo
+    "sexy dave schneider":          "david schneider",
+    'dave "gomez" schneider':       "david schneider",
+    "dave schneider":               "david schneider",
+    "david scheider":               "david schneider",   # typo
+    "calvin c-money owens":         "calvin owens",
+    "chris 2022 gs ps champ yoder": "chris yoder",
+    "jim stout":                    "chris yoder",
 }
 
 # Force the display name for a group (keyed by normalized canonical).
 # Without an entry here, canonical_name() picks the longest title-cased variant.
 DISPLAY_OVERRIDES: dict[str, str] = {
     "david schneider": "David Schneider",
+    "calvin owens":    "Calvin Owens",
+    "chris yoder":     "Chris Yoder",
 }
 
 
