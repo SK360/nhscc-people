@@ -28,6 +28,11 @@
   header .stat .val { font-size: 18px; font-weight: 700; color: var(--text); }
   header .stat .lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
 
+  .tab-bar { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; padding: 0 20px; }
+  .tab-btn { background: none; border: none; border-bottom: 2px solid transparent; padding: 11px 18px; color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; transition: color 0.15s, border-color 0.15s; letter-spacing: 0.2px; }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
+
   main { max-width: 1100px; margin: 0 auto; padding: 20px 16px; }
 
   .search-wrap { position: relative; margin-bottom: 20px; }
@@ -100,6 +105,15 @@
   .lb-bar { height: 100%; background: linear-gradient(90deg, var(--green), rgba(62,207,142,0.4)); border-radius: 2px; }
   @media (max-width: 480px) { .lb-bar-wrap { display: none; } }
 
+  /* Facts panel */
+  .facts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .fact-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; }
+  .fact-icon { font-size: 26px; margin-bottom: 10px; line-height: 1; }
+  .fact-title { font-size: 15px; font-weight: 700; margin-bottom: 7px; color: var(--text); }
+  .fact-body { font-size: 13px; color: var(--muted); line-height: 1.6; }
+  .fact-body strong { color: var(--text); font-weight: 600; }
+  @media (max-width: 600px) { .facts-grid { grid-template-columns: 1fr; } }
+
   .empty { text-align: center; padding: 48px 24px; color: var(--muted); }
   .empty .icon { font-size: 40px; margin-bottom: 12px; }
   .empty p { font-size: 15px; }
@@ -123,15 +137,103 @@
   </div>
 </header>
 
+<nav class="tab-bar">
+  <button class="tab-btn active" data-tab="search">🔍 Search</button>
+  <button class="tab-btn" data-tab="facts">★ Interesting Facts</button>
+</nav>
+
 <main>
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input type="text" id="search" placeholder="Search by name…" autocomplete="off" autocorrect="off" spellcheck="false">
-    <div class="search-hint" id="search-hint"><span class="spinner"></span>Loading data…</div>
+  <!-- Search panel -->
+  <div id="panel-search">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search" placeholder="Search by name…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="search-hint" id="search-hint"><span class="spinner"></span>Loading data…</div>
+    </div>
+    <div id="results"></div>
+    <div id="leaderboard"></div>
+    <div id="yearview"></div>
   </div>
-  <div id="results"></div>
-  <div id="leaderboard"></div>
-  <div id="yearview"></div>
+
+  <!-- Facts panel -->
+  <div id="panel-facts" style="display:none">
+    <div class="facts-grid">
+
+      <div class="fact-card">
+        <div class="fact-icon">🏆</div>
+        <div class="fact-title">The Iron Nine</div>
+        <div class="fact-body">Nine drivers have competed in <strong>every single season</strong> from 2002 through 2026 — 25 consecutive years without missing one: <strong>Chris Carlisle, Dan Ennis, Dennis Witt, Doug Bober, Jay Gyger, Mark Sanner, Mike Ancas, Ted Weidner,</strong> and <strong>Walt Barie</strong>.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">👑</div>
+        <div class="fact-title">Most Events Ever</div>
+        <div class="fact-body"><strong>Jay Gyger</strong> leads all-time with <strong>206 career entries</strong> — appearing at roughly <strong>94% of every event</strong> NHSCC has ever held. Second is Doug Bober and Chris Carlisle, each with 182.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">🚗</div>
+        <div class="fact-title">Most Loyal Car</div>
+        <div class="fact-body"><strong>Doug Bober</strong> has entered his <strong>1988 Pontiac Fiero GT</strong> an astonishing <strong>174 times</strong> since 2002 — the most-entered specific driver/car combination in the entire dataset.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">🚪</div>
+        <div class="fact-title">Half Never Come Back</div>
+        <div class="fact-body">Of the <strong>3,200+ unique drivers</strong> ever to enter an NHSCC event, <strong>50.4% appeared exactly once</strong>. Only about 1 in 5 drivers has come back more than 5 times.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">❤️</div>
+        <div class="fact-title">The Weaver Pair</div>
+        <div class="fact-body"><strong>Ralph Weaver</strong> (162 entries) and <strong>Jenny Weaver</strong> (137 entries) have competed side by side for <strong>24 consecutive years</strong>, from 2002 through 2025.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">📅</div>
+        <div class="fact-title">Greatest Comeback</div>
+        <div class="fact-body"><strong>Mitch Stivason</strong> ran in 2003, then vanished from the results for <strong>20 years</strong> — returning to competition in 2023. The longest gap between first and last appearance in the database.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">🏎️</div>
+        <div class="fact-title">Miata Is Always the Answer</div>
+        <div class="fact-body">The <strong>Mazda Miata</strong> has <strong>759 entries</strong> across <strong>25 different car classes</strong> — the most-entered model and the most class-versatile car in NHSCC history. It has been entered continuously since 2002.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">🧽</div>
+        <div class="fact-title">The Spongebob Miata</div>
+        <div class="fact-body">A 1990/91 Mazda Miata nicknamed <strong>"Spongebob"</strong> was a shared club car campaigned in XP class from 2013–2019. At least <strong>11 different drivers</strong> took a turn behind the wheel.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">⏱️</div>
+        <div class="fact-title">Courses Got Much Faster</div>
+        <div class="fact-body">Average raw times have dropped from roughly <strong>45 seconds</strong> in 2002–2003 to about <strong>31 seconds</strong> in recent years — a <strong>31% reduction</strong> reflecting shorter, tighter course designs over two decades.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">🎯</div>
+        <div class="fact-title">Class Tourists</div>
+        <div class="fact-body"><strong>Chris Carlisle</strong> has competed in <strong>26 different car classes</strong>; <strong>Jay Gyger</strong> in <strong>25</strong>. Between them they've sampled nearly every class NHSCC has ever offered.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">📈</div>
+        <div class="fact-title">Busiest Event &amp; Season</div>
+        <div class="fact-body">The single busiest event was <strong>May 26, 2013</strong> with <strong>153 entries</strong>. The biggest full season was <strong>2025</strong>, which saw <strong>1,020 total entries</strong> across 13 events.</div>
+      </div>
+
+      <div class="fact-card">
+        <div class="fact-icon">⚡</div>
+        <div class="fact-title">EVs Are Coming</div>
+        <div class="fact-body">Electric vehicles barely registered before 2020, but the EVX class has grown steadily — logging <strong>163 entries in 2025–2026 alone</strong>. The revolution is already in the paddock.</div>
+      </div>
+
+    </div>
+    <p class="generated" id="facts-generated"></p>
+  </div>
 </main>
 
 <script>
@@ -148,6 +250,7 @@ fetch('data.json')
     document.getElementById('s-years').textContent   = `${d.stats.first_year}–${d.stats.last_year}`;
     document.getElementById('search-hint').textContent = 'Type at least 2 characters to search';
     document.getElementById('search').disabled = false;
+    document.getElementById('facts-generated').textContent = `Data exported ${d.generated}`;
     renderLeaderboard(d.drivers);
     renderYears(d.years);
   })
@@ -156,6 +259,17 @@ fetch('data.json')
   });
 
 document.getElementById('search').disabled = true;
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const tab = btn.dataset.tab;
+    document.getElementById('panel-search').style.display = tab === 'search' ? '' : 'none';
+    document.getElementById('panel-facts').style.display  = tab === 'facts'  ? '' : 'none';
+  });
+});
 
 function renderLeaderboard(drivers) {
   const top10 = [...drivers].sort((a, b) => b.count - a.count).slice(0, 10);
