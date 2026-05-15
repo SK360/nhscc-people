@@ -31,6 +31,25 @@ def canonical_name(names: list) -> str:
     return max(pool, key=len)
 
 
+# ---------------------------------------------------------------------------
+# Manual alias overrides
+# ---------------------------------------------------------------------------
+# Map any normalized name variant → the normalized canonical group key.
+# All variants that share the same canonical key are merged into one driver.
+ALIASES: dict[str, str] = {
+    "sexy dave schneider":    "david schneider",
+    'dave "gomez" schneider': "david schneider",
+    "dave schneider":         "david schneider",
+    "david scheider":         "david schneider",   # typo
+}
+
+# Force the display name for a group (keyed by normalized canonical).
+# Without an entry here, canonical_name() picks the longest title-cased variant.
+DISPLAY_OVERRIDES: dict[str, str] = {
+    "david schneider": "David Schneider",
+}
+
+
 def main():
     if not os.path.exists(DB_PATH):
         print(f"Database not found: {DB_PATH}")
@@ -60,6 +79,7 @@ def main():
     groups: dict = {}
     for name in raw_names:
         key = normalize_name(name)
+        key = ALIASES.get(key, key)   # merge aliased variants into canonical group
         groups.setdefault(key, []).append(name)
 
     # Build driver records
@@ -84,7 +104,7 @@ def main():
                 "pax":  round(r["pax_time"],  3) if r["pax_time"]  else None,
             })
 
-        display_name = strip_annotation(canonical_name(variants))
+        display_name = DISPLAY_OVERRIDES.get(key, strip_annotation(canonical_name(variants)))
         clean_variants = list(dict.fromkeys(strip_annotation(v) for v in variants))
         other_variants = [v for v in clean_variants if v != display_name]
 
