@@ -288,6 +288,8 @@ EVENT_URLS = [
     ("2003", "2003-04-27", "http://nhscc.com/2003/030427.htm"),
     ("2003", "2003-05-04", "http://nhscc.com/2003/030504.htm"),
     ("2003", "2003-05-18", "http://nhscc.com/2003/030518.htm"),
+    ("2003", "2003-07-01", "http://nhscc.com/2003/030701.htm"),
+    ("2003", "2003-07-06", "http://nhscc.com/2003/030706.htm"),
     ("2003", "2003-09-01", "http://nhscc.com/2003/030901.htm"),
     ("2003", "2003-09-07", "http://nhscc.com/2003/030907.htm"),
     ("2003", "2003-09-14", "http://nhscc.com/2003/030914.htm"),
@@ -340,84 +342,212 @@ def safe_float(val: str) -> Optional[float]:
         return None
 
 
+def parse_pre_format(pre_text: str, url: str, year: str, date_str: str) -> list[DriverResult]:
+    """
+    Parse the fixed-width <pre> text format used by some 2002-2003 pages.
+    Header: Class Car#    Driver             Car        Run 1   P1 ... Best   Place PAX
+    """
+    lines = pre_text.split('\n')
+    results = []
+
+    # Find the header line — accepts both "Driver" and "Name" column labels
+    header = None
+    header_idx = None
+    for i, line in enumerate(lines):
+        if all(tok in line for tok in ('Class', 'Car#', 'Best', 'PAX')):
+            if 'Driver' in line or 'Name' in line:
+                header = line
+                header_idx = i
+                break
+
+    if header is None:
+        return []
+
+    # Derive column start positions from the header
+    try:
+        col_class   = header.index('Class')
+        col_carnum  = header.index('Car#')
+        col_driver  = header.index('Driver') if 'Driver' in header else header.index('Name')
+        col_carname = header.index('Car', col_driver)   # skip "Car#" earlier in the line
+        col_runs    = header.index('Run')               # start of run-time columns
+        col_best    = header.index('Best')
+        col_place   = header.index('Place')
+        col_pax     = header.index('PAX')
+    except ValueError:
+        return []
+
+    for line in lines[header_idx + 1:]:
+        if not line.strip() or len(line) < col_best:
+            continue
+
+        class_val  = line[col_class:col_carnum].strip()
+        car_raw    = line[col_carnum:col_driver].strip()
+        driver_val = line[col_driver:col_carname].strip()
+        car_val    = line[col_carname:col_runs].strip()
+        best_val   = line[col_best:col_place].strip() if len(line) > col_best else ''
+        pax_val    = line[col_pax:].strip() if len(line) > col_pax else ''
+
+        # Must be a real class (letters only) and have a driver name
+        if not class_val or not driver_val or not re.match(r'^[A-Z]+$', class_val):
+            continue
+
+        # Car number is the leading digits in the Car# cell
+        num_match = re.match(r'^(\d+)', car_raw)
+        if not num_match:
+            continue
+        car_number = num_match.group(1)
+
+        results.append(DriverResult(
+            event_date=date_str,
+            event_year=int(year),
+            car_class=class_val,
+            car_number=car_number,
+            name=driver_val,
+            car=car_val,
+            best_time=safe_float(best_val),
+            pax_index=None,
+            pax_time=safe_float(pax_val),
+            source_url=url,
+            scrape_method="static_html",
+        ))
+
+    return results
+
+
 def parse_static_html(html: str, url: str, year: str, date_str: str) -> list[DriverResult]:
     """
     Parse old-style Finish-Time static HTML tables.
-    Columns: Bump | CarID | Name | Car | Run1 | P1 | ... | Best | PAX Index | PAX Time
+
+    Three known formats:
+      pre-text:        Fixed-width <pre> block (some 2002-2003 pages)
+      2004+ (CarID):   Bump | CarID | Name | Car | R1..R6+penalties | Best | PAX Index | PAX Time
+      2003-era (Car#): Class | Car# | Name | Car | R1..R5+penalties | Best | Place | PAX
     """
     soup = BeautifulSoup(html, "html.parser")
+
+    # Fixed-width <pre> format takes priority when present
+    pre_tag = soup.find('pre')
+    if pre_tag:
+        return parse_pre_format(pre_tag.get_text(), url, year, date_str)
     results = []
-    current_class = "UNKNOWN"
 
-    # Find all table rows
+    def _find_col(lower_cells, *names):
+        """Return the index of the first matching column name (case-insensitive), or None."""
+        for n in names:
+            if n in lower_cells:
+                return lower_cells.index(n)
+        return None
+
     rows = soup.find_all("tr")
-    header_seen = False
 
+    # Scan for a header row, then parse data rows using column-index mapping.
+    # This handles the many table-layout variations seen across 2002-2004 pages.
+    col_map = None
     for row in rows:
-        cells = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
-        if not cells:
+        cells_raw = [td.get_text(strip=True) for td in row.find_all(["td", "th"])]
+        cells_low = [c.lower().strip() for c in cells_raw]
+
+        if col_map is None:
+            # Detect header row: must have a recognisable name-like and class-like column
+            has_name = any(c in cells_low for c in ("name", "driver", "fname"))
+            has_class = any(c in cells_low for c in ("class", "bump"))
+            if not (has_name and has_class):
+                continue
+
+            # Build column map from header
+            col_map = {
+                "name":      _find_col(cells_low, "name", "driver"),
+                "fname":     _find_col(cells_low, "fname"),
+                "lname":     _find_col(cells_low, "lname"),
+                "class":     _find_col(cells_low, "class", "bump"),
+                "car_num":   _find_col(cells_low, "car#", "car #", "carid"),
+                "car":       _find_col(cells_low, "car"),
+                "make":      _find_col(cells_low, "make"),
+                "model":     _find_col(cells_low, "model"),
+                "best":      _find_col(cells_low, "best", "best time", "best run"),
+                "pax":       _find_col(cells_low, "pax", "pax time"),
+                "pax_index": _find_col(cells_low, "pax index", "index"),
+                # Track whether col 0 in the header was blank (unlabeled competition-class column)
+                "_col0_blank": cells_raw[0].strip() == "" if cells_raw else False,
+            }
+            continue  # header row consumed
+
+        # Data row
+        n = len(cells_raw)
+
+        def _cell(idx):
+            return cells_raw[idx].strip() if idx is not None and idx < n else ""
+
+        # Build driver name
+        if col_map["name"] is not None:
+            name = _cell(col_map["name"])
+        elif col_map["fname"] is not None:
+            name = (_cell(col_map["fname"]) + " " + _cell(col_map["lname"])).strip()
+        else:
+            name = ""
+
+        if not name or name.lower() in ("name", "driver", ""):
             continue
 
-        # Detect header row
-        if "Name" in cells and "Car" in cells:
-            header_seen = True
+        # Some pages (e.g. 030518) have an unlabeled col 0 holding the competition class
+        # while the explicit "Class" column holds the PAX class. Prefer col 0 in that case.
+        if col_map["_col0_blank"] and n > 0 and re.match(r'^[A-Z]{2,5}$', cells_raw[0].strip()):
+            car_class = cells_raw[0].strip()
+        else:
+            car_class = _cell(col_map["class"])
+        raw_num   = _cell(col_map["car_num"])
+
+        # Build car description
+        if col_map["car"] is not None:
+            car = _cell(col_map["car"])
+        elif col_map["make"] is not None:
+            car = (_cell(col_map["make"]) + " " + _cell(col_map["model"])).strip()
+        else:
+            car = ""
+
+        # Car number: strip trailing class suffix (e.g. "56 EP" → "56")
+        # or use the 2004 CarID value as-is.
+        num_match = re.match(r'^(\d+)', raw_num)
+        if num_match:
+            car_number = num_match.group(1)
+        else:
+            car_number = raw_num  # CarID like "34ASP"
+
+        # Extract class from CarID if not explicit
+        if not car_class and raw_num:
+            m = re.search(r'[A-Z][A-Z0-9]*$', raw_num)
+            if m:
+                car_class = m.group(0)
+
+        if not car_class:
             continue
-        if not header_seen:
-            continue
 
-        # Skip obviously empty rows
-        if len(cells) < 5:
-            continue
+        # Best / PAX times — fall back to last few columns when headers are absent
+        if col_map["best"] is not None:
+            best_time = safe_float(_cell(col_map["best"]))
+        else:
+            best_time = safe_float(cells_raw[-3]) if n >= 3 else None
 
-        # Class header rows typically have the class in the first or second cell
-        # and few other cells with content
-        bump_cell = cells[0].strip()
-        carid_cell = cells[1].strip() if len(cells) > 1 else ""
+        if col_map["pax"] is not None:
+            pax_time = safe_float(_cell(col_map["pax"]))
+        else:
+            pax_time = safe_float(cells_raw[-1]) if n >= 1 else None
 
-        # A class row: first cell is class name, second cell looks like "12BS" (number+class)
-        # Or bump cell is empty and second cell contains class identifier
-        if carid_cell and re.match(r'^\d+[A-Z]+\d*$|^[A-Z]+\d*$', carid_cell.replace(" ", "")):
-            # Check if this could be a driver row: name should be in cell[2]
-            if len(cells) >= 4 and cells[2]:  # name field
-                name = cells[2].strip()
-                car = cells[3].strip() if len(cells) > 3 else ""
-                # Look for best time: it's in the "Best" column
-                # In the 2004 format: Bump|CarID|Name|Car|R1|P1|R2|P2|...|Best|PAXIndex|PAXTime
-                # The class header rows have empty name/car cells
-                if name and not name.isdigit():
-                    # Extract class from carid_cell (e.g. "34ASP" -> "ASP", "12BS" -> "BS")
-                    class_match = re.search(r'[A-Z][A-Z0-9]*$', carid_cell)
-                    if class_match:
-                        current_class = class_match.group(0)
-                    else:
-                        current_class = carid_cell
+        pax_index = safe_float(_cell(col_map["pax_index"])) if col_map["pax_index"] else None
 
-                    # Best time is near the end; PAX index and PAX time at the very end
-                    # Find by position: last 3 columns should be Best | PAX Index | PAX Time
-                    best_time = None
-                    pax_index = None
-                    pax_time = None
-                    if len(cells) >= 3:
-                        pax_time = safe_float(cells[-1])
-                        pax_index = safe_float(cells[-2])
-                        best_time = safe_float(cells[-3])
-
-                    results.append(DriverResult(
-                        event_date=date_str,
-                        event_year=int(year),
-                        car_class=current_class,
-                        car_number=carid_cell,
-                        name=name,
-                        car=car,
-                        best_time=best_time,
-                        pax_index=pax_index,
-                        pax_time=pax_time,
-                        source_url=url,
-                        scrape_method="static_html",
-                    ))
-        elif bump_cell and not bump_cell.isdigit():
-            # Possible class-only separator row
-            pass
+        results.append(DriverResult(
+            event_date=date_str,
+            event_year=int(year),
+            car_class=car_class,
+            car_number=car_number,
+            name=name,
+            car=car,
+            best_time=best_time,
+            pax_index=pax_index,
+            pax_time=pax_time,
+            source_url=url,
+            scrape_method="static_html",
+        ))
 
     return results
 
